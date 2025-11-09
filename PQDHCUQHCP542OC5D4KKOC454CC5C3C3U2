@@ -1,0 +1,130 @@
+local Players,RunService,TweenService,UserInputService,ReplicatedStorage=game:GetService("Players"),game:GetService("RunService"),game:GetService("TweenService"),game:GetService("UserInputService"),game:GetService("ReplicatedStorage")
+local task=task
+local UIS=UserInputService
+local Player,player=Players.LocalPlayer,Players.LocalPlayer
+local PlayerGui=player:WaitForChild("PlayerGui")
+local moveSpeed,tweenSpeed=16,0.8
+local defaultSickleSpeed=50
+local sickleSpeed=defaultSickleSpeed
+local leaderZOffset,followerZOffset=1,1
+local defaultSickleSize=Vector3.new(0.5,0.75,3.75)
+local leaderTargetPos=Vector3.new(-136,2,40)
+local followerTargetPos=Vector3.new(220,2,92)
+local running=false
+local pausedByFood=false
+local cleanupLoopStarted=false
+local spinUpdaterStarted=false
+local function getKart() local k=workspace:FindFirstChild("Karts") if not k then return nil end return k:FindFirstChild(player.Name) end
+local function getSeat() local k=getKart() if not k then return nil end return k:FindFirstChild("DriverSeat") end
+local function findSeatWeld() local s=getSeat() if not s then return nil end local w=s:FindFirstChild("SeatWeld") if w then return w end for _,c in ipairs(s:GetChildren()) do if (c:IsA("Weld")or c:IsA("WeldConstraint")or c:IsA("Motor6D"))and c.Part1 then if player.Character and c.Part1:IsDescendantOf(player.Character) then return c end end end return nil end
+local screenGui=Instance.new("ScreenGui")
+screenGui.Name="GridMoverUI"
+screenGui.ResetOnSpawn=false
+screenGui.IgnoreGuiInset=true
+screenGui.Parent=PlayerGui
+screenGui.Enabled=true
+UIS.InputBegan:Connect(function(input,gp) if gp then return end if input.KeyCode==Enum.KeyCode.RightControl then screenGui.Enabled=not screenGui.Enabled end end)
+local mainFrame=Instance.new("Frame")
+mainFrame.Size=UDim2.new(0,200,0,200)
+mainFrame.Position=UDim2.new(0,20,0.15,0)
+mainFrame.BackgroundColor3=Color3.fromRGB(25,25,35)
+mainFrame.BackgroundTransparency=0.25
+mainFrame.Parent=screenGui
+mainFrame.Active=true
+local gradient=Instance.new("UIGradient",mainFrame)
+gradient.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(50,50,60)),ColorSequenceKeypoint.new(1,Color3.fromRGB(35,35,45))})
+gradient.Rotation=90
+local glow=Instance.new("UIStroke",mainFrame)
+glow.Thickness=3
+glow.Transparency=0.6
+glow.Color=Color3.fromRGB(0,150,255)
+glow.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+task.spawn(function() while mainFrame and mainFrame.Parent do if not glow or not glow.Parent then break end local pIn=TweenService:Create(glow,TweenInfo.new(1.5,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{Transparency=0.2,Thickness=5,Color=Color3.fromRGB(0,200,255)}) pIn:Play() pcall(function() pIn.Completed:Wait() end) local pOut=TweenService:Create(glow,TweenInfo.new(1.5,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{Transparency=0.6,Thickness=3,Color=Color3.fromRGB(0,150,255)}) pOut:Play() pcall(function() pOut.Completed:Wait() end) end end)
+Instance.new("UICorner",mainFrame).CornerRadius=UDim.new(0,10)
+local title=Instance.new("TextLabel")
+title.Size=UDim2.new(1,-20,0,25)
+title.Position=UDim2.new(0,10,0,5)
+title.BackgroundTransparency=1
+title.TextColor3=Color3.new(1,1,1)
+title.TextScaled=true
+title.Text="Counsel's GRG Overhaul"
+title.Font=Enum.Font.GothamBold
+title.Parent=mainFrame
+title.TextXAlignment=Enum.TextXAlignment.Left
+local subLabel=Instance.new("TextLabel",title)
+subLabel.Position=UDim2.new(0,10,0,28)
+subLabel.Text="Farm System Control v1.0"
+subLabel.Font=Enum.Font.Gotham
+subLabel.TextSize=12
+subLabel.TextColor3=Color3.fromRGB(180,180,200)
+subLabel.BackgroundTransparency=1
+subLabel.Parent=mainFrame
+subLabel.TextXAlignment=Enum.TextXAlignment.Left
+local textLabel=Instance.new("TextLabel",title)
+textLabel.TextSize=12
+textLabel.Position=UDim2.new(0,10,0,40)
+textLabel.BackgroundTransparency=1
+textLabel.TextColor3=Color3.fromRGB(0,113,0)
+textLabel.Font=Enum.Font.Gotham
+textLabel.TextXAlignment=Enum.TextXAlignment.Left
+textLabel.Text="Suspicion: 0"
+textLabel.Parent=mainFrame
+local function updateSuspicion() local s=Player:GetAttribute("SuspicionPoints")or 0 textLabel.Text="Suspicion: "..tostring(s) if s>50 then Player:Kick("Suspicion points exceeded 50.") end end
+RunService.RenderStepped:Connect(updateSuspicion)
+local playBtn=Instance.new("TextButton",mainFrame)
+playBtn.Size=UDim2.new(1,-20,0,20)
+playBtn.Position=UDim2.new(0,10,0,50)
+playBtn.Text="Play"
+playBtn.Font=Enum.Font.GothamBold
+playBtn.TextScaled=true
+playBtn.BackgroundColor3=Color3.fromRGB(35,35,50)
+playBtn.TextColor3=Color3.new(230,230,250)
+local outlineBtn=Instance.new("UIStroke",playBtn)
+outlineBtn.Thickness=1
+outlineBtn.Color=Color3.fromRGB(0,170,255)
+outlineBtn.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+outlineBtn.Transparency=0
+Instance.new("UICorner",playBtn).CornerRadius=UDim.new(0,10)
+local getCartBtn=Instance.new("TextButton",mainFrame)
+getCartBtn.Size=UDim2.new(1,-20,0,20)
+getCartBtn.Position=UDim2.new(0,10,0.43,0)
+getCartBtn.Text="Get Farm Cart"
+getCartBtn.Font=Enum.Font.GothamBold
+getCartBtn.TextScaled=true
+getCartBtn.BackgroundColor3=Color3.fromRGB(35,35,50)
+getCartBtn.TextColor3=Color3.new(230,230,250)
+local outlineBtn=Instance.new("UIStroke",getCartBtn)
+outlineBtn.Thickness=1
+outlineBtn.Color=Color3.fromRGB(0,170,255)
+outlineBtn.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+outlineBtn.Transparency=0
+Instance.new("UICorner",getCartBtn).CornerRadius=UDim.new(0,10)
+local dragging,dragInput,dragStart,startPos
+local function updateDrag(input) local d=input.Position-dragStart mainFrame.Position=UDim2.new(startPos.X.Scale,startPos.X.Offset+d.X,startPos.Y.Scale,startPos.Y.Offset+d.Y) end
+mainFrame.InputBegan:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseButton1 then dragging=true dragStart=input.Position startPos=mainFrame.Position input.Changed:Connect(function() if input.UserInputState==Enum.UserInputState.End then dragging=false end end) end end)
+mainFrame.InputChanged:Connect(function(input) if input.UserInputType==Enum.UserInputType.MouseMovement then dragInput=input end end)
+UserInputService.InputChanged:Connect(function(input) if input==dragInput and dragging then updateDrag(input) end end)
+local function createPart(name,color,pos) local p=workspace:FindFirstChild(name) if p and p:IsA("BasePart") then p.Anchored=true p.CanCollide=false p.CFrame=CFrame.new(pos) return p end p=Instance.new("Part") p.Name=name p.Size=Vector3.new(2,2,2) p.Anchored=true p.CanCollide=false p.CFrame=CFrame.new(pos) p.Color=color p.Parent=workspace return p end
+local leader=createPart("MoverLeader",Color3.fromRGB(255,200,50),leaderTargetPos)
+local follower=createPart("MoverFollower",Color3.fromRGB(100,200,255),followerTargetPos)
+local function setSickleSpinEnabled(e) local k=getKart() if not k then return end local auto=k:FindFirstChild("AutoSickle") if not auto then return end for _,n in ipairs({"SickleL","SickleR"}) do local h=auto:FindFirstChild(n) if h and h:IsA("HingeConstraint") then local dir=(n=="SickleL")and 1 or -1 h.AngularVelocity=(e and sickleSpeed*dir or 0) end end end
+local function startSpinUpdater() if spinUpdaterStarted then return end spinUpdaterStarted=true spawn(function() while true do if running then local k=getKart() if k then local auto=k:FindFirstChild("AutoSickle") if auto then for _,n in ipairs({"SickleL","SickleR"}) do local h=auto:FindFirstChild(n) if h and h:IsA("HingeConstraint") then local dir=(n=="SickleL")and 1 or -1 pcall(function() h.AngularVelocity=sickleSpeed*dir end) end end end end end task.wait(0.1) end end) end
+local function setSickleSize(s) local k=getKart() if not k then return end local auto=k:FindFirstChild("AutoSickle") if not auto then return end for _,n in ipairs({"LeftSickle","RightSickle"}) do local p=auto:FindFirstChild(n) if p and p:IsA("BasePart") then p.Size=s end end end
+local attachmentConn,attachmentsActive
+local function stopAttachmentFollow() attachmentsActive=false if attachmentConn then attachmentConn:Disconnect() attachmentConn=nil end end
+local function startAttachmentFollow() stopAttachmentFollow() attachmentsActive=true attachmentConn=RunService.Heartbeat:Connect(function() if not attachmentsActive then return end local k=getKart() if not k then return end local auto=k:FindFirstChild("AutoSickle") if not auto then return end local mount=auto:FindFirstChild("Mount") if not mount then return end local left=mount:FindFirstChild("LeftAttachment") local right=mount:FindFirstChild("RightAttachment") local base=math.clamp(0.25*(16/math.max(moveSpeed,0.0001)),0.02,0.6) local dur=base/math.max(0.0001,tweenSpeed) if left and leader then TweenService:Create(left,TweenInfo.new(dur,Enum.EasingStyle.Sine,Enum.EasingDirection.Out),{WorldPosition=leader.Position}):Play() end if right and follower then TweenService:Create(right,TweenInfo.new(dur,Enum.EasingStyle.Sine,Enum.EasingDirection.Out),{WorldPosition=follower.Position}):Play() end end) end
+local function startClientCleanupLoop() if cleanupLoopStarted then return end cleanupLoopStarted=true spawn(function() while true do if running then local k=getKart() if k then local w=k:FindFirstChild("Wheels") if w then pcall(function() w:Destroy() end) end if not w then local s=k:FindFirstChild("Scripts") if s then local c=s:FindFirstChild("Client") if c then local cc=c:FindFirstChild("ClientController") if cc then task.wait(0.5) pcall(function() cc:Destroy() end) end end end end end end task.wait(0.1) end end) end
+local leaderTargetPart,followerTargetPart
+local function isValidRiceTarget(p) if not p or not p.Parent then return false end local phys=p.Parent for _,c in ipairs(phys:GetChildren()) do if c:IsA("BasePart") and c.Anchored then return true end end return false end
+local function getRandomRiceFromClosest8(part) local rf=workspace:FindFirstChild("Rice") if not rf then return nil end local dists={} for _,m in ipairs(rf:GetChildren()) do local phys=m:FindFirstChild("PhysicalRice") if phys then for _,p in ipairs(phys:GetChildren()) do if p:IsA("BasePart") and p.Anchored then table.insert(dists,{p=p,dist=(p.Position-part.Position).Magnitude}) end end end end table.sort(dists,function(a,b)return a.dist<b.dist end) local cands={} for i=1,math.min(8,#dists) do table.insert(cands,dists[i].p) end if #cands==0 then return nil end return cands[math.random(1,#cands)] end
+local function tweenToTargetRice(p) local current=(p==leader) and leaderTargetPart or followerTargetPart if not isValidRiceTarget(current) then current=getRandomRiceFromClosest8(p) if p==leader then leaderTargetPart=current else followerTargetPart=current end end if current then local goal=current.Position+Vector3.new(0,0,(p==leader)and leaderZOffset or followerZOffset) local dur=math.clamp(0.25*(16/math.max(moveSpeed,0.0001))/math.max(0.0001,tweenSpeed),0.02,0.6) TweenService:Create(p,TweenInfo.new(dur,Enum.EasingStyle.Sine,Enum.EasingDirection.Out),{Position=goal}):Play() end end
+RunService.Heartbeat:Connect(function() if running then tweenToTargetRice(leader) tweenToTargetRice(follower) end end)
+RunService.Heartbeat:Connect(function() local rf=workspace:FindFirstChild("Rice") if not rf then return end for _,m in ipairs(rf:GetChildren()) do local pr=m:FindFirstChild("PhysicalRice") if pr then for _,c in ipairs(pr:GetChildren()) do if c:IsA("BasePart") and not c.Anchored then c:Destroy() end end end end end)
+local function startRunningSequence() local k=getKart() if not k then return false end local s=getSeat() if not s then return false end local w=findSeatWeld() if not w then return false end setSickleSize(defaultSickleSize) if not isValidRiceTarget(leaderTargetPart) then leaderTargetPart=getRandomRiceFromClosest8(leader) end if not isValidRiceTarget(followerTargetPart) then followerTargetPart=getRandomRiceFromClosest8(follower) end if leaderTargetPart then leader.Position=leaderTargetPart.Position+Vector3.new(0,0,leaderZOffset) end if followerTargetPart then follower.Position=followerTargetPart.Position+Vector3.new(0,0,followerZOffset) end sickleSpeed=0 setSickleSpinEnabled(true) startSpinUpdater() running=true playBtn.Text="Pause" playBtn.BackgroundColor3=Color3.fromRGB(7,158,7) startAttachmentFollow() startClientCleanupLoop() task.delay(25,function() if running then sickleSpeed=defaultSickleSpeed end end) return true end
+local function stopRunningSequence() running=false pausedByFood=false playBtn.Text="Play" playBtn.BackgroundColor3=Color3.fromRGB(35,35,50) stopAttachmentFollow() sickleSpeed=0 setSickleSpinEnabled(false) end
+spawn(function() while true do local maxF=ReplicatedStorage:FindFirstChild("MaxFood") local food=ReplicatedStorage:FindFirstChild("Food") if maxF and food and maxF:IsA("IntValue") and food:IsA("IntValue") then if maxF.Value==food.Value then if running then pausedByFood=true running=false playBtn.Text="Resume (Food)" stopAttachmentFollow() end else if pausedByFood and not running then pausedByFood=false running=true playBtn.Text="Pause" startAttachmentFollow() startClientCleanupLoop() end end end task.wait(0.5) end end)
+playBtn.MouseButton1Click:Connect(function() if running then stopRunningSequence() else pausedByFood=false local ok=startRunningSequence() if not ok then stopRunningSequence() end end end)
+getCartBtn.MouseButton1Click:Connect(function() local char=player.Character or player.CharacterAdded:Wait() local hrp=char:WaitForChild("HumanoidRootPart") local prompt=workspace:WaitForChild("BarbStores"):WaitForChild("FarmKart"):WaitForChild("PromptPart"):WaitForChild("ProximityPrompt") local targetCFrame=CFrame.new(172.458603,3.74989581,-25.5465107,0.995884359,8.76732855e-08,0.0906331986,-2.94666499e-15,1,-9.67341862e-07,-0.0906331986,9.63360662e-07,0.995884359) local function touch(a,b) if a and b then firetouchinterest(a,b,0) firetouchinterest(a,b,1) end end local function bypass() local guard=workspace:FindFirstChild("GUARDONLY",true) if guard then touch(hrp,guard) end task.wait(0.3) end local function safeTeleport(pos) local h=char:FindFirstChild("Humanoid") if h and h.Health>0 then if math.abs(pos.X)<=5000 and math.abs(pos.Y)<=5000 and math.abs(pos.Z)<=5000 then bypass() hrp.CFrame=CFrame.new(pos) return true end end return false end if safeTeleport(targetCFrame.Position) and prompt then task.wait(0.1) prompt:InputHoldBegin() task.wait(0.55) prompt:InputHoldEnd() end end)
+local cam=workspace.CurrentCamera
+RunService.Heartbeat:Connect(function() if cam and cam.CameraType~=Enum.CameraType.Custom then cam.CameraType=Enum.CameraType.Custom end end)
+spawn(function() while true do if player.Team and player.Team.Name=="Leader" then player:Kick("You are on the Leader team!") end task.wait(1) end end)
