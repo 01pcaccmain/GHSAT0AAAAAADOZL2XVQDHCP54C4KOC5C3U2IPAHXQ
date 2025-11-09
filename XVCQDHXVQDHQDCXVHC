@@ -1,1 +1,94 @@
-PREFORMANCE CAP EDITOR
+local p=game:GetService("Players")
+local r=game:GetService("RunService")
+local u=game:GetService("UserInputService")
+local t=game:GetService("TweenService")
+local pl=p.LocalPlayer
+local g=pl:WaitForChild("\80\108\97\121\101\114\71\117\105")
+r:Set3dRenderingEnabled(true)
+local v=true
+local d=false
+local di,ds,sp
+local s=Instance.new("\83\99\114\101\101\110\71\117\105")
+s.Name="\70\80\83\67\111\110\116\114\111\108\85\73"
+s.ResetOnSpawn=false
+s.Parent=g
+s.Enabled=true
+u.InputBegan:Connect(function(i,gp)
+	if gp then return end
+	if i.KeyCode==Enum.KeyCode.U then s.Enabled=not s.Enabled end
+end)
+local f=Instance.new("\70\114\97\109\101")
+f.Size=UDim2.new(0,100,0,50)
+f.Position=UDim2.new(0,50,0,50)
+f.BackgroundColor3=Color3.fromRGB(25,25,35)
+f.BackgroundTransparency=0.25
+f.Parent=s
+local gr=Instance.new("\85\73\71\114\97\100\105\101\110\116",f)
+gr.Color=ColorSequence.new({ColorSequenceKeypoint.new(0,Color3.fromRGB(50,50,60)),ColorSequenceKeypoint.new(1,Color3.fromRGB(35,35,45))})
+gr.Rotation=90
+local gl=Instance.new("\85\73\83\116\114\111\107\101",f)
+gl.Thickness=3
+gl.Transparency=0.6
+gl.Color=Color3.fromRGB(0,150,255)
+gl.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+task.spawn(function()
+	while f and f.Parent and gl and gl.Parent do
+		local pi=t:Create(gl,TweenInfo.new(1.5,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{Transparency=0.2,Thickness=5,Color=Color3.fromRGB(0,200,255)})
+		pi:Play()
+		pcall(function() pi.Completed:Wait() end)
+		local po=t:Create(gl,TweenInfo.new(1.5,Enum.EasingStyle.Sine,Enum.EasingDirection.InOut),{Transparency=0.6,Thickness=3,Color=Color3.fromRGB(0,150,255)})
+		po:Play()
+		pcall(function() po.Completed:Wait() end)
+	end
+end)
+local c=Instance.new("\85\73\67\111\114\110\101\114",f)
+c.CornerRadius=UDim.new(0,10)
+local ti=Instance.new("\84\101\120\116\76\97\98\101\108")
+ti.Size=UDim2.new(1,-16,0,18)
+ti.Position=UDim2.new(0,35,0,5)
+ti.BackgroundTransparency=1
+ti.TextColor3=Color3.new(255,255,255)
+ti.TextScaled=true
+ti.Text="\70\80\83"
+ti.Font=Enum.Font.GothamBold
+ti.Parent=f
+ti.TextXAlignment=Enum.TextXAlignment.Left
+local inp=Instance.new("\84\101\120\116\66\111\120")
+inp.Size=UDim2.new(0,80,0,20)
+inp.Position=UDim2.new(0,10,0,25)
+inp.BackgroundColor3=Color3.fromRGB(35,35,50)
+inp.BackgroundTransparency=0
+inp.TextColor3=Color3.fromRGB(255,255,255)
+inp.Font=Enum.Font.Gotham
+inp.TextScaled=true
+inp.ClearTextOnFocus=false
+inp.Text="25"
+inp.Parent=f
+local cb=Instance.new("\85\73\67\111\114\110\101\114",inp)
+cb.CornerRadius=UDim.new(0,10)
+local ob=Instance.new("\85\73\83\116\114\111\107\101",inp)
+ob.Thickness=1
+ob.Color=Color3.fromRGB(0,170,255)
+ob.ApplyStrokeMode=Enum.ApplyStrokeMode.Border
+ob.Transparency=0
+local function uF()
+	local v=tonumber(inp.Text)
+	if v then if setfps then setfps(v) end print("FPS set to:",v) end
+end
+inp.FocusLost:Connect(function(e) if e then uF() end end)
+local function m(i)
+	local d=i.Position-ds
+	f.Position=UDim2.new(sp.X.Scale,sp.X.Offset+d.X,sp.Y.Scale,sp.Y.Offset+d.Y)
+end
+f.InputBegan:Connect(function(i)
+	if i.UserInputType==Enum.UserInputType.MouseButton1 then
+		d=true
+		ds=i.Position
+		sp=f.Position
+		i.Changed:Connect(function() if i.UserInputState==Enum.UserInputState.End then d=false end end)
+	end
+end)
+f.InputChanged:Connect(function(i) if i.UserInputType==Enum.UserInputType.MouseMovement then di=i end end)
+u.InputChanged:Connect(function(i) if i==di and d then m(i) end end)
+u.InputBegan:Connect(function(i,pd) if pd then return end if i.KeyCode==Enum.KeyCode.RightBracket then v=not v; f.Visible=v end end)
+uF()
