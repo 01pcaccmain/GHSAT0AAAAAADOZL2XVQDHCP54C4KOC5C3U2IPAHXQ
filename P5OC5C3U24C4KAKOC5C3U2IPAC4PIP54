@@ -1,0 +1,2 @@
+game.Players.LocalPlayer.Character.Humanoid:SetStateEnabled(15, false) replicatesignal(game.Players.LocalPlayer.Kill)
+while true do for i, v in pairs(workspace.FishSpawns.Shark.Fish:GetDescendants()) do if v.Name == "Root" and v:FindFirstChild("TouchInterest") then firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v, 0) task.wait() firetouchinterest(game.Players.LocalPlayer.Character.HumanoidRootPart, v, 1) end end task.wait() end
